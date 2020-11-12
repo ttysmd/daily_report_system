@@ -28,6 +28,10 @@ import javax.persistence.Table;
     @NamedQuery(
             name = "checkLoginCodeAndPassword",
             query = "SELECT e FROM Employee AS e WHERE e.delete_flag = 0 AND e.code = :code AND e.password = :pass"
+            ),
+    @NamedQuery(
+            name = "checkAccess",
+            query = "SELECT e FROM Employee AS e WHERE e.code = :code"
             )
 })
 @Entity
@@ -56,6 +60,19 @@ public class Employee {
 
     @Column(name = "delete_flag", nullable = false)
     private Integer delete_flag;
+
+    //新たに追加
+    @Column(name = "access")
+    private int access;
+
+    public int getAccess() {
+        return access;
+    }
+
+    public void setAccess(int access) {
+        this.access = access;
+    }
+    //ここまで
 
     public Integer getId() {
         return id;

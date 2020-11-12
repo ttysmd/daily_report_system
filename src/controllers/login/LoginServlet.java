@@ -15,24 +15,14 @@ import models.Employee;
 import utils.DBUtil;
 import utils.EncryptUtil;
 
-/**
- * Servlet implementation class LoginServlet
- */
 @WebServlet("/login")
 public class LoginServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
-    /**
-     * @see HttpServlet#HttpServlet()
-     */
     public LoginServlet() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
-    /**
-     * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
-     */
     // ログイン画面を表示
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setAttribute("_token", request.getSession().getId());
@@ -46,9 +36,6 @@ public class LoginServlet extends HttpServlet {
         rd.forward(request, response);
     }
 
-    /**
-     * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-     */
     // ログイン処理を実行
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         // 認証結果を格納する変数
@@ -78,22 +65,54 @@ public class LoginServlet extends HttpServlet {
             em.close();
 
             if(e != null) {
+//            	 && e.getAccess() <= 3
                 check_result = true;
             }
         }
 
         if(!check_result) {
-            // 認証できなかったらログイン画面に戻る
-            request.setAttribute("_token", request.getSession().getId());
-            request.setAttribute("hasError", true);
-            request.setAttribute("code", code);
 
-            RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/views/login/login.jsp");
-            rd.forward(request, response);
+          //追加した部分
+            EntityManager em = DBUtil.createEntityManager();
+
+            Employee ca = em.createNamedQuery("checkAccess", Employee.class)
+                    .setParameter("code", code)
+                    .getSingleResult();
+
+            int n = ca.getAccess();
+            n++;
+            ca.setAccess(n);
+            em.getTransaction().begin();
+            em.getTransaction().commit();
+            em.close();
+
+            if(n >= 3) {
+                RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/views/login/failure.jsp");
+                rd.forward(request, response);
+          //追加分ここまで
+
+            } else {
+                // 認証できなかったらログイン画面に戻る
+                request.setAttribute("_token", request.getSession().getId());
+                request.setAttribute("hasError", true);
+                request.setAttribute("code", code);
+                RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/views/login/login.jsp");
+                rd.forward(request, response);
+            }
+
         } else {
             // 認証できたらログイン状態にしてトップページへリダイレクト
-            request.getSession().setAttribute("login_employee", e);
+            EntityManager em = DBUtil.createEntityManager();
+            Employee ca = em.createNamedQuery("checkAccess", Employee.class)
+                    .setParameter("code", code)
+                    .getSingleResult();
+            ca.setAccess(0);
+            int n = ca.getAccess();
+            em.getTransaction().begin();
+            em.getTransaction().commit();
+            em.close();
 
+            request.getSession().setAttribute("login_employee", e);
             request.getSession().setAttribute("flush", "ログインしました。");
             response.sendRedirect(request.getContextPath() + "/");
         }
